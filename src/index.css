@@ -25,31 +25,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@layer components {
-  .signInBtn {
-    @apply flex items-center justify-center gap-5 px-5 pt-2 pb-12;
-    button {
-      @apply rounded-full px-3 text-gray-500 hover:text-[#FFAE46];
-      * {
-        @apply cursor-pointer duration-300;
-      }
-    }
-  }
-  .loginText {
-    @apply flex flex-col items-center justify-center gap-10 pt-2 pb-10;
-    input {
-      @apply w-[90%] border-b-2 border-gray-400 pl-2 text-xl leading-none duration-150 ease-in-out outline-none focus:border-[#FFAE46];
-      caret-color: var(--color-gray-700);
-    }
-  }
-  .line {
-    @apply flex w-full items-center justify-center gap-2 px-2 text-gray-500;
-    div {
-      @apply h-1 w-full rounded-3xl bg-gray-400;
-    }
-  }
-}
-
 @layer custamize {
   :root {
     --txt-clr: #262626; /* neutral-800 */
@@ -109,28 +84,11 @@
     }
   }
 }
-
-.grybg {
-  background-color: #d9d9d9;
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-.logo {
-  background-color: #ffffff;
-  mask-image: url('/logo.svg');
-  mask-repeat: no-repeat;
-  mask-position: center;
-}
 .nv {
   height: 100vh;
-}
-#nav-toggle:checked ~ .toggle-button .open-icon {
-  display: none;
-}
-#nav-toggle:checked ~ .toggle-button .close-icon {
-  display: block;
 }
