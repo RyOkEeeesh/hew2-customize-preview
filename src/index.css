@@ -88,7 +88,7 @@
   }
   .display {
     @apply relative w-full;
-    height: calc(100vh - var(--header-h) - var(--task-h));
+    height: calc(100vh - var(--task-h));
   }
   .loader {
     width: 14px;
@@ -126,7 +126,7 @@ body {
   mask-position: center;
 }
 .nv {
-  height: calc(100vh - var(--spacing) * 20);
+  height: 100vh;
 }
 #nav-toggle:checked ~ .toggle-button .open-icon {
   display: none;

@@ -461,7 +461,7 @@ export function useToolHandlers(baseMat: THREE.MeshStandardMaterial) {
       // Bucket Action
       if (action.type === 'bucket') {
         const { id, newClr, oldClr } = action;
-        const mesh = editGroupRef.current.children.filter(isMeshState).find(m => m.userData.id === id && m.userData.meshType === MeshType.Concave);
+        const mesh = editGroupRef.current.children.filter(isMeshState).find(m => m.userData.id === id);
         if (!mesh) return null;
 
         getMat(mesh).color.copy(newClr);

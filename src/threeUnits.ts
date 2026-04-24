@@ -1,6 +1,14 @@
-import * as THREE from 'three';
-import { DENT, RANGE_MIN, RANGE_MAX, SOURCE_MIN, SOURCE_MAX, MeshType, type Vec2Arr } from './constants';
-import { v4 as uuid } from 'uuid';
+import * as THREE from "three";
+import {
+  DENT,
+  RANGE_MIN,
+  RANGE_MAX,
+  SOURCE_MIN,
+  SOURCE_MAX,
+  MeshType,
+  type Vec2Arr,
+} from "./constants";
+import { v4 as uuid } from "uuid";
 
 export type MeshUserData = {
   isMesh: true;
@@ -15,7 +23,12 @@ export type MeshState = THREE.Mesh<THREE.BufferGeometry, MatType> & {
   userData: MeshUserData;
 };
 
-export function createMesh(geometry: THREE.BufferGeometry, materials: MatType, meshType: MeshType, id?: string): MeshState {
+export function createMesh(
+  geometry: THREE.BufferGeometry,
+  materials: MatType,
+  meshType: MeshType,
+  id?: string,
+): MeshState {
   const mesh = new THREE.Mesh(geometry, materials) as MeshState;
   mesh.userData.isMesh = true;
   mesh.userData.id = id ?? uuid();
@@ -24,7 +37,9 @@ export function createMesh(geometry: THREE.BufferGeometry, materials: MatType, m
 }
 
 export function isMeshState(obj: THREE.Object3D): obj is MeshState {
-  return obj instanceof THREE.Mesh && (obj.userData as MeshUserData).isMesh === true;
+  return (
+    obj instanceof THREE.Mesh && (obj.userData as MeshUserData).isMesh === true
+  );
 }
 
 const _BOX_1 = new THREE.Box3();
@@ -61,44 +76,84 @@ export function arrToVec2(nums: Vec2Arr): THREE.Vector2Like {
 }
 
 export function normalizeWidth(value: number): number {
-  return ((value - SOURCE_MIN) / (SOURCE_MAX - SOURCE_MIN)) * (RANGE_MAX - RANGE_MIN) + RANGE_MIN;
+  return (
+    ((value - SOURCE_MIN) / (SOURCE_MAX - SOURCE_MIN)) *
+      (RANGE_MAX - RANGE_MIN) +
+    RANGE_MIN
+  );
 }
 
 export function denormalizeWidth(value: number): number {
-  return ((value - RANGE_MIN) / (RANGE_MAX - RANGE_MIN)) * (SOURCE_MAX - SOURCE_MIN) + SOURCE_MIN;
+  return (
+    ((value - RANGE_MIN) / (RANGE_MAX - RANGE_MIN)) *
+      (SOURCE_MAX - SOURCE_MIN) +
+    SOURCE_MIN
+  );
 }
 
+const MAX_VERTICES = 4000;
 const tmpDir = new THREE.Vector2();
 const tmpNormal = new THREE.Vector2();
 
-export function updateGeometryPre(geo: THREE.BufferGeometry, points: Vec2Arr[], width: number) {
+export function updateGeometryPre(
+  geo: THREE.BufferGeometry,
+  points: Vec2Arr[],
+  width: number,
+) {
   if (points.length < 2) {
-    geo.deleteAttribute('position');
-    geo.setIndex(null);
+    geo.setDrawRange(0, 0);
+    geo.clearGroups();
     return;
+  }
+
+  let posAttr = geo.getAttribute("position") as THREE.BufferAttribute;
+  let indexAttr = geo.getIndex() as THREE.BufferAttribute;
+
+  if (!posAttr) {
+    const posArray = new Float32Array(MAX_VERTICES * 4 * 3);
+    posAttr = new THREE.BufferAttribute(posArray, 3);
+    geo.setAttribute("position", posAttr);
+  }
+  if (!indexAttr) {
+    const indexArray = new Uint32Array(MAX_VERTICES * 30);
+    indexAttr = new THREE.Uint32BufferAttribute(indexArray, 1);
+    geo.setIndex(indexAttr);
   }
 
   const radius = normalizeWidth(width) / 2;
   const depth = DENT;
-  const vertices: number[] = [];
 
+  const vertices = posAttr.array as Float32Array;
+  const indices = indexAttr.array as Uint32Array;
+
+  let vIdx = 0;
   const topIndices: number[] = [];
   const otherIndices: number[] = [];
 
   for (let i = 0; i < points.length; i++) {
     const curr = arrToVec2(points[i]);
     if (i < points.length - 1) {
-      tmpDir.set(points[i + 1][0] - curr.x, points[i + 1][1] - curr.y).normalize();
+      tmpDir
+        .set(points[i + 1][0] - curr.x, points[i + 1][1] - curr.y)
+        .normalize();
     } else if (i > 0) {
       const p = arrToVec2(points[i - 1]);
       tmpDir.set(points[i - 1][0] - p.x, points[i - 1][1] - p.y).normalize();
     }
     tmpNormal.set(-tmpDir.y, tmpDir.x).multiplyScalar(radius);
 
-    vertices.push(curr.x + tmpNormal.x, curr.y + tmpNormal.y, depth);
-    vertices.push(curr.x - tmpNormal.x, curr.y - tmpNormal.y, depth);
-    vertices.push(curr.x + tmpNormal.x, curr.y + tmpNormal.y, 0);
-    vertices.push(curr.x - tmpNormal.x, curr.y - tmpNormal.y, 0);
+    vertices[vIdx++] = curr.x + tmpNormal.x;
+    vertices[vIdx++] = curr.y + tmpNormal.y;
+    vertices[vIdx++] = depth;
+    vertices[vIdx++] = curr.x - tmpNormal.x;
+    vertices[vIdx++] = curr.y - tmpNormal.y;
+    vertices[vIdx++] = depth;
+    vertices[vIdx++] = curr.x + tmpNormal.x;
+    vertices[vIdx++] = curr.y + tmpNormal.y;
+    vertices[vIdx++] = 0;
+    vertices[vIdx++] = curr.x - tmpNormal.x;
+    vertices[vIdx++] = curr.y - tmpNormal.y;
+    vertices[vIdx++] = 0;
 
     const currIdx = 4 * i;
 
@@ -127,11 +182,21 @@ export function updateGeometryPre(geo: THREE.BufferGeometry, points: Vec2Arr[], 
     }
   }
 
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  geo.setIndex([...topIndices, ...otherIndices]);
+  const allIndices = [...topIndices, ...otherIndices];
+  for (let i = 0; i < allIndices.length; i++) {
+    indices[i] = allIndices[i];
+  }
+
+  posAttr.updateRanges[0] = { start: 0, count: vIdx };
+  posAttr.needsUpdate = true;
+  indexAttr.updateRanges[0] = { start: 0, count: allIndices.length };
+  indexAttr.needsUpdate = true;
+
+  geo.setDrawRange(0, allIndices.length);
   geo.clearGroups();
   geo.addGroup(0, topIndices.length, 0);
   geo.addGroup(topIndices.length, otherIndices.length, 1);
+
   geo.computeVertexNormals();
   geo.computeBoundingBox();
   geo.computeBoundingSphere();
@@ -159,9 +224,13 @@ function calculateNormal(i: number, points: Vec2Arr[], radius: number) {
   _NORMAL.set(-_DIR.y, _DIR.x).multiplyScalar(radius);
 }
 
-export function updateGeometryFin(geo: THREE.BufferGeometry, points: Vec2Arr[], width: number) {
+export function updateGeometryFin(
+  geo: THREE.BufferGeometry,
+  points: Vec2Arr[],
+  width: number,
+) {
   if (points.length < 2) {
-    geo.deleteAttribute('position');
+    geo.deleteAttribute("position");
     geo.setIndex(null);
     return;
   }
