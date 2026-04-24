@@ -1,7 +1,12 @@
-import { useThree } from '@react-three/fiber';
-import { WebGLRenderTarget, SRGBColorSpace, type Object3D, type PerspectiveCamera } from 'three';
-import { GLTFExporter } from 'three-stdlib';
-import { useOther } from './store';
+import { useThree } from "@react-three/fiber";
+import {
+  WebGLRenderTarget,
+  SRGBColorSpace,
+  type Object3D,
+  type PerspectiveCamera,
+} from "three";
+import { GLTFExporter } from "three-stdlib";
+import { useOther } from "./store";
 
 const _ex = new GLTFExporter();
 
@@ -12,18 +17,18 @@ export default function useExporter(exportObj: Object3D) {
     const { defCamPos } = useOther.getState();
 
     const glbPromise = new Promise<Blob>((resolve, reject) => {
-      ignore.forEach(o => o.visible = false);
+      ignore.forEach((o) => (o.visible = false));
       _ex.parse(
         exportObj,
         (result) => {
           const glb = new Blob([result as ArrayBuffer], {
-            type: 'model/gltf-binary',
+            type: "model/gltf-binary",
           });
-          ignore.forEach(o => o.visible = true);
+          ignore.forEach((o) => (o.visible = true));
           resolve(glb);
         },
         (error) => {
-          ignore.forEach(o => o.visible = true);
+          ignore.forEach((o) => (o.visible = true));
           reject(error);
         },
         { binary: true },
@@ -61,11 +66,11 @@ export default function useExporter(exportObj: Object3D) {
         cam.quaternion.copy(originalQuat);
         cam.updateProjectionMatrix();
 
-        const canvas = document.createElement('canvas');
+        const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('2D context unavailable');
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("2D context unavailable");
 
         const imageData = ctx.createImageData(width, height);
         for (let y = 0; y < height; y++) {
@@ -81,7 +86,7 @@ export default function useExporter(exportObj: Object3D) {
         ctx.putImageData(imageData, 0, 0);
 
         rt.dispose();
-        resolve(canvas.toDataURL('image/png'));
+        resolve(canvas.toDataURL("image/png"));
       } catch (e) {
         reject(e);
       }
@@ -89,16 +94,22 @@ export default function useExporter(exportObj: Object3D) {
 
     try {
       const [glb, image] = await Promise.all([glbPromise, imagePromise]);
-      console.log('Generated:', {
-        image: image.slice(0, 50) + '...',
-        glbSize: glb.size,
-      });
-      // const t = await UploadFile({ image, glb });
-      // if (t) window.location.href = t;
+
+      const glbUrl = URL.createObjectURL(glb);
+      const linkGlb = document.createElement("a");
+      linkGlb.href = glbUrl;
+      linkGlb.download = "manhole.glb";
+      linkGlb.click();
+      URL.revokeObjectURL(glbUrl);
+
+      const linkImg = document.createElement("a");
+      linkImg.href = image;
+      linkImg.download = "manhole.png";
+      linkImg.click();
     } catch (error) {
-      console.error('Save process failed:', error);
+      console.error("Save process failed:", error);
     }
-  };
+  }
 
   return { exporter };
 }

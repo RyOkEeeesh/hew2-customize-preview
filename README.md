@@ -1,73 +1,45 @@
-# React + TypeScript + Vite
+# HEW2 マンホールカスタマイズページ
+[HEW（進級制作展）で制作したプロジェクト](https://github.com/RyOkEeeesh/HEW2)の一部機能として実装した、マンホールカスタマイズページです。
+本リポジトリはECサイト全体ではなく、その中のカスタマイズ機能部分を抜粋したものになります。
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Currently, two official plugins are available:
+## DEMO
+**[こちらから試す](https://ryokeeeesh.github.io/hew2-customize-preview/)**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 操作方法
 
-## React Compiler
+| 操作 | 内容 |
+|------|------|
+| **左クリック** | ツールに応じた描画操作 |
+| **右クリック + ドラッグ** | 視点移動 |
+| **右ダブルクリック** | 視点リセット |
+| **マウスホイール** | ズームイン / ズームアウト |
+|**ctrl+z / ⌘+z**| undo |
+|**ctrl+y / ⌘+⇧+z**| redo |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## ツールと機能一覧
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### ペン
+自由に描画できる基本ツール  
+- 線の**太さ変更**
+- **色の変更**
+- **曲線補助**で滑らかな線が描ける
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### バケツ
+選択範囲を一瞬で塗りつぶし  
+- **色の変更**
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 消しゴム
+描いたものを削除  
+- 消しゴムの**太さ変更**
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+
+### 保存
+元プロジェクトでは出品までのフローがありますが、本プロジェクトでは簡易実装として、保存時にPNG画像とGLTFデータがダウンロードされます。
