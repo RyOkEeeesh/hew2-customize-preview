@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
+import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -78,7 +78,7 @@ type CamCtrlProps = {
 export function CamCtrl({ targetRef }: CamCtrlProps) {
   const [ctrlEnable, setCtrlEnable] = useState<boolean>(false);
   const { defCamPos, setDefCamPos } = useOther(useShallow(s => ({ ...s })));
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const controlsRef = useRef<OrbitControlsImpl>(null!);
   const bounds = useRef(new THREE.Box3());
   const animateFlagRef = useRef<boolean>(false);
@@ -98,6 +98,45 @@ export function CamCtrl({ targetRef }: CamCtrlProps) {
     lastRightClickTime.current = now;
   };
 
+  const isFirstRef = useRef<boolean>(true);
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSizeRef = useRef<{ width: number; height: number }>({ width: size.width, height: size.height });
+
+  useEffect(() => {
+    if (isFirstRef.current) {
+      isFirstRef.current = false;
+      return;
+    }
+    if (size.width === lastSizeRef.current.width && size.height === lastSizeRef.current.height) {
+      return;
+    }
+    lastSizeRef.current = { width: size.width, height: size.height };
+
+    if (resizeTimerRef.current) clearTimeout(resizeTimerRef.current);
+    resizeTimerRef.current = setTimeout(() => {
+      if (!controlsRef.current || !targetRef.current) return;
+
+      const cam = camera as THREE.PerspectiveCamera;
+
+      const beforePosition: THREE.Vector3Like = { x: cam.position.x, y: cam.position.y, z: cam.position.z };
+      const beforeTarget: THREE.Vector3Like = { x: controlsRef.current.target.x, y: controlsRef.current.target.y, z: controlsRef.current.target.z };
+
+      cam.position.copy(defCamPos);
+      fitObject(cam, targetRef.current, 1.1);
+      setDefCamPos({
+        x: cam.position.x,
+        y: cam.position.y,
+        z: cam.position.z,
+      });
+
+      cam.position.copy(beforePosition);
+      controlsRef.current.target.copy(beforeTarget);
+
+      controlsRef.current.update();
+      resizeTimerRef.current = null;
+    }, 200);
+  }, [size.width, size.height]);
+
   useLayoutEffect(() => {
     const dom = gl.domElement;
     dom.addEventListener('mousedown', handleRightDblClick);
@@ -114,12 +153,11 @@ export function CamCtrl({ targetRef }: CamCtrlProps) {
     if (!targetRef.current || !controlsRef.current) return;
     fitObject(camera as THREE.PerspectiveCamera, targetRef.current, 1.1);
 
-    const targetX = camera.position.x;
-    const targetY = camera.position.y;
-    const targetZ = camera.position.z;
-    setDefCamPos({ x: targetX, y: targetY, z: targetZ });
+    const { x, y, z } = camera.position;
 
-    camera.position.set(targetX, initComPosY, targetZ);
+    setDefCamPos({ x, y, z });
+
+    camera.position.set(x, initComPosY, z);
     camera.lookAt(_center);
 
     animateFlagRef.current = true;
@@ -127,7 +165,7 @@ export function CamCtrl({ targetRef }: CamCtrlProps) {
     targetRef.current.updateMatrixWorld(true);
     bounds.current.setFromObject(targetRef.current);
     controlsRef.current.target.copy(_center);
-    controlsRef.current.maxDistance = targetY + 10;
+    controlsRef.current.maxDistance = y + 10;
     controlsRef.current.update();
   }, [targetRef, camera])
 
