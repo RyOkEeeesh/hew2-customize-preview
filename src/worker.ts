@@ -2,8 +2,7 @@ import * as THREE from 'three';
 import { useRef, useEffect } from 'react';
 import type { CSGMsg, CSGResult, CSGType, IslMsg, IslResult, LineHelperResult, SmoothRange, Vec2Arr } from './constants';
 
-const CORES = 8;
-// const CORES = navigator.hardwareConcurrency || 4;
+const CORES = navigator.hardwareConcurrency || 4;
 
 export function Vec2ToArray32(points: Vec2Arr[]): Float32Array {
   const len = points.length;
