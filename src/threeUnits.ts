@@ -1,4 +1,19 @@
-import * as THREE from "three";
+import {
+  Box3,
+  Vector2,
+  type Vector2Like,
+  Vector3,
+  type Vector3Like,
+  Object3D,
+  Color,
+  MeshStandardMaterial,
+  BufferGeometry,
+  BufferAttribute,
+  Uint32BufferAttribute,
+  Mesh,
+  Shape,
+  ExtrudeGeometry,
+} from 'three';
 import {
   DENT,
   RANGE_MIN,
@@ -7,44 +22,42 @@ import {
   SOURCE_MAX,
   MeshType,
   type Vec2Arr,
-} from "./constants";
-import { v4 as uuid } from "uuid";
+} from './constants';
+import { v4 as uuid } from 'uuid';
 
 export type MeshUserData = {
   isMesh: true;
   id: string;
   meshType: MeshType;
-  originalColor?: THREE.Color;
+  originalColor?: Color;
 };
 
-type MatType = THREE.MeshStandardMaterial | THREE.MeshStandardMaterial[];
+type MatType = MeshStandardMaterial | MeshStandardMaterial[];
 
-export type MeshState = THREE.Mesh<THREE.BufferGeometry, MatType> & {
+export type MeshState = Mesh<BufferGeometry, MatType> & {
   userData: MeshUserData;
 };
 
 export function createMesh(
-  geometry: THREE.BufferGeometry,
+  geometry: BufferGeometry,
   materials: MatType,
   meshType: MeshType,
   id?: string,
 ): MeshState {
-  const mesh = new THREE.Mesh(geometry, materials) as MeshState;
+  const mesh = new Mesh(geometry, materials) as MeshState;
   mesh.userData.isMesh = true;
   mesh.userData.id = id ?? uuid();
   mesh.userData.meshType = meshType;
   return mesh;
 }
 
-export function isMeshState(obj: THREE.Object3D): obj is MeshState {
-  return (
-    obj instanceof THREE.Mesh && (obj.userData as MeshUserData).isMesh === true
-  );
+export function isMeshState(obj: Object3D): obj is MeshState {
+  return obj instanceof Mesh && (obj.userData as MeshUserData).isMesh === true;
 }
 
-const _BOX_1 = new THREE.Box3();
-const _BOX_2 = new THREE.Box3();
-export function checkCollision(mesh1: THREE.Mesh, mesh2: THREE.Mesh): boolean {
+const _BOX_1 = new Box3();
+const _BOX_2 = new Box3();
+export function checkCollision(mesh1: Mesh, mesh2: Mesh): boolean {
   if (!mesh1 || !mesh2) return false;
   mesh1.updateMatrixWorld();
   mesh2.updateMatrixWorld();
@@ -53,16 +66,16 @@ export function checkCollision(mesh1: THREE.Mesh, mesh2: THREE.Mesh): boolean {
   return _BOX_1.intersectsBox(_BOX_2);
 }
 
-const _CENTER_VEC3 = new THREE.Vector3();
+const _CENTER_VEC3 = new Vector3();
 
-export function getCenter(obj: THREE.Object3D): THREE.Vector3Like {
+export function getCenter(obj: Object3D): Vector3Like {
   _BOX_1.setFromObject(obj);
   _BOX_1.getCenter(_CENTER_VEC3);
   const { x, y, z } = _CENTER_VEC3;
   return { x, y, z };
 }
 
-export function getMat(m: MeshState): THREE.MeshStandardMaterial {
+export function getMat(m: MeshState): MeshStandardMaterial {
   return Array.isArray(m.material) ? m.material[0] : m.material;
 }
 
@@ -71,7 +84,7 @@ export function meshDispose(mesh: MeshState): void {
   getMat(mesh).dispose();
 }
 
-export function arrToVec2(nums: Vec2Arr): THREE.Vector2Like {
+export function arrToVec2(nums: Vec2Arr): Vector2Like {
   return { x: nums[0], y: nums[1] };
 }
 
@@ -92,11 +105,11 @@ export function denormalizeWidth(value: number): number {
 }
 
 const MAX_VERTICES = 4000;
-const tmpDir = new THREE.Vector2();
-const tmpNormal = new THREE.Vector2();
+const tmpDir = new Vector2();
+const tmpNormal = new Vector2();
 
 export function updateGeometryPre(
-  geo: THREE.BufferGeometry,
+  geo: BufferGeometry,
   points: Vec2Arr[],
   width: number,
 ) {
@@ -106,17 +119,17 @@ export function updateGeometryPre(
     return;
   }
 
-  let posAttr = geo.getAttribute("position") as THREE.BufferAttribute;
-  let indexAttr = geo.getIndex() as THREE.BufferAttribute;
+  let posAttr = geo.getAttribute('position') as BufferAttribute;
+  let indexAttr = geo.getIndex() as BufferAttribute;
 
   if (!posAttr) {
     const posArray = new Float32Array(MAX_VERTICES * 4 * 3);
-    posAttr = new THREE.BufferAttribute(posArray, 3);
-    geo.setAttribute("position", posAttr);
+    posAttr = new BufferAttribute(posArray, 3);
+    geo.setAttribute('position', posAttr);
   }
   if (!indexAttr) {
     const indexArray = new Uint32Array(MAX_VERTICES * 30);
-    indexAttr = new THREE.Uint32BufferAttribute(indexArray, 1);
+    indexAttr = new Uint32BufferAttribute(indexArray, 1);
     geo.setIndex(indexAttr);
   }
 
@@ -202,10 +215,10 @@ export function updateGeometryPre(
   geo.computeBoundingSphere();
 }
 
-const _CURR = new THREE.Vector2();
-const _NEXT = new THREE.Vector2();
-const _DIR = new THREE.Vector2();
-const _NORMAL = new THREE.Vector2();
+const _CURR = new Vector2();
+const _NEXT = new Vector2();
+const _DIR = new Vector2();
+const _NORMAL = new Vector2();
 
 function calculateNormal(i: number, points: Vec2Arr[], radius: number) {
   const p = points[i];
@@ -225,18 +238,18 @@ function calculateNormal(i: number, points: Vec2Arr[], radius: number) {
 }
 
 export function updateGeometryFin(
-  geo: THREE.BufferGeometry,
+  geo: BufferGeometry,
   points: Vec2Arr[],
   width: number,
 ) {
   if (points.length < 2) {
-    geo.deleteAttribute("position");
+    geo.deleteAttribute('position');
     geo.setIndex(null);
     return;
   }
 
   const radius = normalizeWidth(width) / 2;
-  const shape = new THREE.Shape();
+  const shape = new Shape();
 
   for (let i = 0; i < points.length; i++) {
     calculateNormal(i, points, radius);
@@ -262,7 +275,7 @@ export function updateGeometryFin(
     bevelEnabled: false,
   };
 
-  const newGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+  const newGeo = new ExtrudeGeometry(shape, extrudeSettings);
 
   geo.copy(newGeo);
   newGeo.dispose();

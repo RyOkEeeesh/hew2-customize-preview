@@ -1,6 +1,15 @@
-import * as THREE from 'three';
+import { BufferGeometry, Mesh } from 'three';
 import { useRef, useEffect } from 'react';
-import type { CSGMsg, CSGResult, CSGType, IslMsg, IslResult, LineHelperResult, SmoothRange, Vec2Arr } from './constants';
+import type {
+  CSGMsg,
+  CSGResult,
+  CSGType,
+  IslMsg,
+  IslResult,
+  LineHelperResult,
+  SmoothRange,
+  Vec2Arr,
+} from './constants';
 
 const CORES = navigator.hardwareConcurrency || 4;
 
@@ -31,10 +40,25 @@ export default function useWebWorker() {
   const chaikinWorkerRef = useRef<Worker>(null!);
 
   useEffect(() => {
-    const csg = new Worker(new URL('./workers/csg.worker.ts', import.meta.url), { type: 'module' });
-    const isl = new Worker(new URL('./workers/isl.worker.ts', import.meta.url), { type: 'module' });
-    const smooth = Array.from({ length: CORES }, () => new Worker(new URL('./workers/smooth.worker.ts', import.meta.url), { type: 'module' }));
-    const chaikin = new Worker(new URL('./workers/chaikin.worker.ts', import.meta.url), { type: 'module' });
+    const csg = new Worker(
+      new URL('./workers/csg.worker.ts', import.meta.url),
+      { type: 'module' },
+    );
+    const isl = new Worker(
+      new URL('./workers/isl.worker.ts', import.meta.url),
+      { type: 'module' },
+    );
+    const smooth = Array.from(
+      { length: CORES },
+      () =>
+        new Worker(new URL('./workers/smooth.worker.ts', import.meta.url), {
+          type: 'module',
+        }),
+    );
+    const chaikin = new Worker(
+      new URL('./workers/chaikin.worker.ts', import.meta.url),
+      { type: 'module' },
+    );
 
     csgWorkerRef.current = csg;
     islWorkerRef.current = isl;
@@ -44,12 +68,16 @@ export default function useWebWorker() {
     return () => {
       csg.terminate();
       isl.terminate();
-      smooth.forEach(w => w.terminate());
+      smooth.forEach((w) => w.terminate());
       chaikin.terminate();
     };
   }, []);
 
-  function postCsgWorker(geoA: THREE.BufferGeometry, geoB: THREE.BufferGeometry, type: CSGType): Promise<CSGResult> {
+  function postCsgWorker(
+    geoA: BufferGeometry,
+    geoB: BufferGeometry,
+    type: CSGType,
+  ): Promise<CSGResult> {
     return new Promise((resolve, reject) => {
       const CSGWorker = csgWorkerRef.current;
       if (!CSGWorker) return reject(new Error('CSGWorker not initialized'));
@@ -82,7 +110,12 @@ export default function useWebWorker() {
         },
       };
 
-      const transfer: ArrayBufferLike[] = [msg.obj.positionA.buffer, msg.obj.normalA.buffer, msg.obj.positionB.buffer, msg.obj.normalB.buffer];
+      const transfer: ArrayBufferLike[] = [
+        msg.obj.positionA.buffer,
+        msg.obj.normalA.buffer,
+        msg.obj.positionB.buffer,
+        msg.obj.normalB.buffer,
+      ];
       if (msg.obj.indexA) transfer.push(msg.obj.indexA.buffer);
       if (msg.obj.indexB) transfer.push(msg.obj.indexB.buffer);
 
@@ -90,7 +123,7 @@ export default function useWebWorker() {
     });
   }
 
-  function postIslWorker(mesh: THREE.Mesh): Promise<IslResult> {
+  function postIslWorker(mesh: Mesh): Promise<IslResult> {
     return new Promise((resolve, reject) => {
       const islWorker = islWorkerRef.current;
       if (!islWorker) return reject(new Error('IslWorker not initialized'));
@@ -117,14 +150,21 @@ export default function useWebWorker() {
         positions: geo.attributes.position.array.slice(),
         normals: geo.attributes.normal.array.slice(),
       };
-      const transfer: ArrayBufferLike[] = [msg.positions.buffer, msg.normals.buffer];
+      const transfer: ArrayBufferLike[] = [
+        msg.positions.buffer,
+        msg.normals.buffer,
+      ];
 
       islWorker.postMessage(msg, transfer);
     });
   }
 
-  function useSmoothWorker(worker: Worker, points: Float32Array, range?: SmoothRange): Promise<Float32Array> {
-    return new Promise(resolve => {
+  function useSmoothWorker(
+    worker: Worker,
+    points: Float32Array,
+    range?: SmoothRange,
+  ): Promise<Float32Array> {
+    return new Promise((resolve) => {
       const handleMessage = (e: MessageEvent<LineHelperResult>) => {
         worker.removeEventListener('message', handleMessage);
         resolve(e.data.result);
@@ -150,7 +190,7 @@ export default function useWebWorker() {
     }
 
     const workers = smoothWorkersRef.current;
-    if (workers.some(w => w === null)) return points;
+    if (workers.some((w) => w === null)) return points;
 
     const pointsPerWorker = Math.ceil(totalPoints / CORES);
     const promises: Promise<Float32Array>[] = [];
@@ -162,7 +202,8 @@ export default function useWebWorker() {
       const subPoints = arr.slice(startIdx * 2, (endIdx + 1) * 2);
 
       const cutStart = i === 0 ? 0 : i * pointsPerWorker - startIdx;
-      const count = i === CORES - 1 ? totalPoints - i * pointsPerWorker : pointsPerWorker;
+      const count =
+        i === CORES - 1 ? totalPoints - i * pointsPerWorker : pointsPerWorker;
 
       const range: SmoothRange = {
         cutStart,
@@ -187,7 +228,7 @@ export default function useWebWorker() {
   }
 
   function postChaikinWorker(points: Vec2Arr[]): Promise<Vec2Arr[]> {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       const chaikinWorker = chaikinWorkerRef.current;
       if (!chaikinWorker) {
         resolve(points);

@@ -4,14 +4,14 @@ import {
   type OptionType,
   TOOL_MAP,
   type ToolType,
-} from "./constants";
-import { type Vector3Like } from "three";
+} from './constants';
+import { type Vector3Like } from 'three';
 
 export type History = {
   undo: () => void | Promise<void>;
   redo: () => void | Promise<void>;
   dispose?: () => void;
-}
+};
 
 type HistoryState = {
   undoStack: History[];
@@ -28,9 +28,9 @@ export const useHistory = create<HistoryState>((set, get) => ({
   undoStack: [],
   redoStack: [],
 
-  pushHistory: cmd => {
+  pushHistory: (cmd) => {
     const { undoStack, redoStack } = get();
-    redoStack.forEach(c => c.dispose?.());
+    redoStack.forEach((c) => c.dispose?.());
     const newUndoStack = [...undoStack, cmd];
     if (newUndoStack.length > MAX_HISTORY) {
       const removed = newUndoStack.shift();
@@ -71,7 +71,7 @@ export const useHistory = create<HistoryState>((set, get) => ({
 
   clearHistory: () => {
     const { undoStack, redoStack } = get();
-    [...undoStack, ...redoStack].forEach(c => c.dispose?.());
+    [...undoStack, ...redoStack].forEach((c) => c.dispose?.());
     set({ undoStack: [], redoStack: [] });
   },
 }));
@@ -102,7 +102,8 @@ const maxClrLen = 5;
 const getRandomColor = () => {
   const letters = '0123456789abcdef';
   const color = ['#'];
-  for (let i = 0; i < 6; i++) color.push(letters[Math.floor(Math.random() * letters.length)]);
+  for (let i = 0; i < 6; i++)
+    color.push(letters[Math.floor(Math.random() * letters.length)]);
   return color.join('');
 };
 
@@ -116,19 +117,23 @@ export const useTools = create<ToolsState>((set, get) => ({
   hue: 0,
   colors: Array.from({ length: maxClrLen }, getRandomColor),
 
-  setTool: tool => set({ tool }),
+  setTool: (tool) => set({ tool }),
   setLineChaikin: (lineChaikin: boolean) => set({ lineChaikin }),
   setLineSmooth: (lineSmooth: boolean) => set({ lineSmooth }),
-  setWidth: w => set(state => ({ width: typeof w === 'function' ? w(state.width) : w })),
-  setBaseColor: baseColor => set({ baseColor }),
-  setColor: color => set({ color }),
-  setHue: hue => set({ hue }),
-  setColors: colors => set({ colors }),
-  pushColors: color => {
+  setWidth: (w) =>
+    set((state) => ({ width: typeof w === 'function' ? w(state.width) : w })),
+  setBaseColor: (baseColor) => set({ baseColor }),
+  setColor: (color) => set({ color }),
+  setHue: (hue) => set({ hue }),
+  setColors: (colors) => set({ colors }),
+  pushColors: (color) => {
     if (color === get().baseColor) return;
-    if (get().colors.find(c => c === color)) return;
+    if (get().colors.find((c) => c === color)) return;
     set({
-      colors: [color, ...get().colors.filter(c => c !== color)].slice(0, maxClrLen),
+      colors: [color, ...get().colors.filter((c) => c !== color)].slice(
+        0,
+        maxClrLen,
+      ),
     });
   },
 }));
@@ -162,10 +167,10 @@ export const useSetting = create<SettingState>((set, get) => ({
     {} as Record<ToolType, OptionType[]>,
   ),
 
-  setToolBarPos: toolBarPos => set({ toolBarPos }),
-  setToolsOrder: toolsOrder => set({ toolsOrder }),
-  setOptionBarPos: optionBarPos => set({ optionBarPos }),
-  setOptionsOrder: optionsOrder => set({ optionsOrder }),
+  setToolBarPos: (toolBarPos) => set({ toolBarPos }),
+  setToolsOrder: (toolsOrder) => set({ toolsOrder }),
+  setOptionBarPos: (optionBarPos) => set({ optionBarPos }),
+  setOptionsOrder: (optionsOrder) => set({ optionsOrder }),
   setToolOptionsOrder: (tool, op) =>
     set({
       optionsOrder: {
@@ -178,12 +183,12 @@ export const useSetting = create<SettingState>((set, get) => ({
 type TaskState = {
   working: string | null;
   setWorking: (w: string | null) => void;
-}
+};
 
-export const useTasks = create<TaskState>(set => ({
+export const useTasks = create<TaskState>((set) => ({
   working: 'ロード中',
-  setWorking: working => set({ working }),
-}))
+  setWorking: (working) => set({ working }),
+}));
 
 type OtherState = {
   trigger: boolean;
@@ -192,9 +197,9 @@ type OtherState = {
   setDefCamPos: (v: Vector3Like) => void;
 };
 
-export const useOther = create<OtherState>(set => ({
+export const useOther = create<OtherState>((set) => ({
   trigger: false,
   defCamPos: { x: 0, y: 0, z: 0 },
-  setTrigger: trigger => set({ trigger }),
-  setDefCamPos: defCamPos => set({ defCamPos }),
+  setTrigger: (trigger) => set({ trigger }),
+  setDefCamPos: (defCamPos) => set({ defCamPos }),
 }));

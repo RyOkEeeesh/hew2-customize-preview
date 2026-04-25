@@ -1,23 +1,32 @@
+import {
+  Box3,
+  Vector3,
+  type Vector3Like,
+  Object3D,
+  PerspectiveCamera as perCam,
+  MathUtils,
+  Group,
+  MOUSE,
+} from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { useOther } from './store';
 import { useShallow } from 'zustand/react/shallow';
 import { getCenter } from './threeUnits';
 
-const _box = new THREE.Box3();
-const _center = new THREE.Vector3();
-const _size = new THREE.Vector3();
-const _v3 = new THREE.Vector3();
-const _dir = new THREE.Vector3();
+const _box = new Box3();
+const _center = new Vector3();
+const _size = new Vector3();
+const _v3 = new Vector3();
+const _dir = new Vector3();
 
 const initComPosY = 100;
 
-const _vertices = Array.from({ length: 8 }, () => new THREE.Vector3());
+const _vertices = Array.from({ length: 8 }, () => new Vector3());
 
-function fitObject(camera: THREE.PerspectiveCamera, object: THREE.Object3D, offset = 1.1) {
+function fitObject(camera: perCam, object: Object3D, offset = 1.1) {
   object.updateMatrixWorld(true);
   _box.setFromObject(object);
   _box.getCenter(_center);
@@ -38,7 +47,7 @@ function fitObject(camera: THREE.PerspectiveCamera, object: THREE.Object3D, offs
 
   _dir.subVectors(camera.position, _center).normalize();
 
-  const fov = THREE.MathUtils.degToRad(camera.fov);
+  const fov = MathUtils.degToRad(camera.fov);
   const aspect = camera.aspect;
 
   const maxDim = Math.max(_size.x, _size.y, _size.z);
@@ -72,7 +81,7 @@ function fitObject(camera: THREE.PerspectiveCamera, object: THREE.Object3D, offs
 }
 
 type CamCtrlProps = {
-  targetRef: RefObject<THREE.Group>;
+  targetRef: RefObject<Group>;
 }
 
 export function CamCtrl({ targetRef }: CamCtrlProps) {
@@ -80,7 +89,7 @@ export function CamCtrl({ targetRef }: CamCtrlProps) {
   const { defCamPos, setDefCamPos } = useOther(useShallow(s => ({ ...s })));
   const { camera, size } = useThree();
   const controlsRef = useRef<OrbitControlsImpl>(null!);
-  const bounds = useRef(new THREE.Box3());
+  const bounds = useRef(new Box3());
   const animateFlagRef = useRef<boolean>(false);
 
   const { gl } = useThree();
@@ -116,10 +125,10 @@ export function CamCtrl({ targetRef }: CamCtrlProps) {
     resizeTimerRef.current = setTimeout(() => {
       if (!controlsRef.current || !targetRef.current) return;
 
-      const cam = camera as THREE.PerspectiveCamera;
+      const cam = camera as perCam;
 
-      const beforePosition: THREE.Vector3Like = { x: cam.position.x, y: cam.position.y, z: cam.position.z };
-      const beforeTarget: THREE.Vector3Like = { x: controlsRef.current.target.x, y: controlsRef.current.target.y, z: controlsRef.current.target.z };
+      const beforePosition: Vector3Like = { x: cam.position.x, y: cam.position.y, z: cam.position.z };
+      const beforeTarget: Vector3Like = { x: controlsRef.current.target.x, y: controlsRef.current.target.y, z: controlsRef.current.target.z };
 
       cam.position.copy(defCamPos);
       fitObject(cam, targetRef.current, 1.1);
@@ -151,7 +160,7 @@ export function CamCtrl({ targetRef }: CamCtrlProps) {
 
   useLayoutEffect(() => {
     if (!targetRef.current || !controlsRef.current) return;
-    fitObject(camera as THREE.PerspectiveCamera, targetRef.current, 1.1);
+    fitObject(camera as perCam, targetRef.current, 1.1);
 
     const { x, y, z } = camera.position;
 
@@ -178,16 +187,16 @@ export function CamCtrl({ targetRef }: CamCtrlProps) {
     const b = bounds.current;
     if (b.isEmpty()) return;
 
-    const clampedX = THREE.MathUtils.clamp(target.x, b.min.x, b.max.x);
-    const clampedZ = THREE.MathUtils.clamp(target.z, b.min.z, b.max.z);
+    const clampedX = MathUtils.clamp(target.x, b.min.x, b.max.x);
+    const clampedZ = MathUtils.clamp(target.z, b.min.z, b.max.z);
 
     const offsetX = target.x - clampedX;
     const offsetZ = target.z - clampedZ;
 
     if (isdragging.current) {
       const limit = 2;
-      const hardClampedX = THREE.MathUtils.clamp(target.x, b.min.x - limit, b.max.x + limit);
-      const hardClampedZ = THREE.MathUtils.clamp(target.z, b.min.z - limit, b.max.z + limit);
+      const hardClampedX = MathUtils.clamp(target.x, b.min.x - limit, b.max.x + limit);
+      const hardClampedZ = MathUtils.clamp(target.z, b.min.z - limit, b.max.z + limit);
 
       if (target.x !== hardClampedX || target.z !== hardClampedZ) {
         const diffX = hardClampedX - target.x;
@@ -222,15 +231,15 @@ export function CamCtrl({ targetRef }: CamCtrlProps) {
 
     _center.copy(getCenter(targetRef.current));
 
-    camera.position.x = THREE.MathUtils.damp(camera.position.x, defCamPos.x, smoothness, delta);
-    camera.position.y = THREE.MathUtils.damp(camera.position.y, defCamPos.y, smoothness, delta);
-    camera.position.z = THREE.MathUtils.damp(camera.position.z, defCamPos.z, smoothness, delta);
+    camera.position.x = MathUtils.damp(camera.position.x, defCamPos.x, smoothness, delta);
+    camera.position.y = MathUtils.damp(camera.position.y, defCamPos.y, smoothness, delta);
+    camera.position.z = MathUtils.damp(camera.position.z, defCamPos.z, smoothness, delta);
 
     const controls = controlsRef.current;
     if (controls) {
-      controls.target.x = THREE.MathUtils.damp(controls.target.x, _center.x, smoothness, delta);
-      controls.target.y = THREE.MathUtils.damp(controls.target.y, _center.y, smoothness, delta);
-      controls.target.z = THREE.MathUtils.damp(controls.target.z, _center.z, smoothness, delta);
+      controls.target.x = MathUtils.damp(controls.target.x, _center.x, smoothness, delta);
+      controls.target.y = MathUtils.damp(controls.target.y, _center.y, smoothness, delta);
+      controls.target.z = MathUtils.damp(controls.target.z, _center.z, smoothness, delta);
 
       controls.update();
     }
@@ -268,12 +277,12 @@ export function CamCtrl({ targetRef }: CamCtrlProps) {
         enableRotate={false}
         mouseButtons={{
           LEFT: undefined,
-          MIDDLE: THREE.MOUSE.DOLLY,
-          RIGHT: THREE.MOUSE.PAN,
+          MIDDLE: MOUSE.DOLLY,
+          RIGHT: MOUSE.PAN,
         }}
         onStart={() => (isdragging.current = true)}
         onEnd={() => (isdragging.current = false)}
-        maxDistance={initComPosY}
+        maxDistance={defCamPos.y + 10}
         minDistance={1}
       />
     </>

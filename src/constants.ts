@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import { type TypedArray } from 'three';
 import { type IconType } from 'react-icons';
 import { Eraser } from 'lucide-react';
 import { FaRegHand } from 'react-icons/fa6';
@@ -9,12 +9,12 @@ export type CSGType = 'union' | 'sub' | 'intersect';
 export type CSGMsg = {
   type: CSGType;
   obj: {
-    positionA: THREE.TypedArray;
-    normalA: THREE.TypedArray;
-    indexA?: THREE.TypedArray;
-    positionB: THREE.TypedArray;
-    normalB: THREE.TypedArray;
-    indexB?: THREE.TypedArray;
+    positionA: TypedArray;
+    normalA: TypedArray;
+    indexA?: TypedArray;
+    positionB: TypedArray;
+    normalB: TypedArray;
+    indexB?: TypedArray;
   };
 };
 
@@ -29,8 +29,8 @@ export type CSGResult = {
 };
 
 export type IslMsg = {
-  positions: THREE.TypedArray;
-  normals: THREE.TypedArray;
+  positions: TypedArray;
+  normals: TypedArray;
 };
 
 export type IslResult = {
@@ -107,7 +107,7 @@ export const TOOL_MAP: ToolMapType = {
     option: ['width'],
     title: '消しゴム',
     Icon: Eraser,
-  }
+  },
 };
 
 export enum MeshType {

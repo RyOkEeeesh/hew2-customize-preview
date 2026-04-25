@@ -1,5 +1,14 @@
-import * as THREE from 'three';
-import { MeshType, type ToolType, type Vec2Arr } from "./constants";
+import {
+  Mesh,
+  BufferAttribute,
+  BufferGeometry,
+  Group,
+  MeshStandardMaterial,
+  Vector3,
+  Color,
+  Raycaster,
+} from 'three';
+import { MeshType, type ToolType, type Vec2Arr } from './constants';
 import useWebWorker from './worker';
 import { useHistory, useTasks, useTools } from './store';
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -10,42 +19,69 @@ import {
   useEffect,
   useRef,
   useState,
-} from "react";
+} from 'react';
 import { type ThreeEvent, type EventHandlers } from '@react-three/fiber';
-import { type MeshState, createMesh, getCenter, getMat, isMeshState, meshDispose, updateGeometryFin, updateGeometryPre } from './threeUnits';
+import {
+  type MeshState,
+  createMesh,
+  getCenter,
+  getMat,
+  isMeshState,
+  meshDispose,
+  updateGeometryFin,
+  updateGeometryPre,
+} from './threeUnits';
 import { v4 as uuid } from 'uuid';
 import { useShallow } from 'zustand/react/shallow';
 
 function useToolOps() {
   const { postCsgWorker, postIslWorker } = useWebWorker();
 
-  const applySubtraction = async (targetMesh: MeshState, convexMesh: THREE.Mesh) => {
+  const applySubtraction = async (targetMesh: MeshState, convexMesh: Mesh) => {
     targetMesh.updateMatrixWorld(true);
     convexMesh.updateMatrixWorld(true);
 
-    const targetGeo = BufferGeometryUtils.mergeVertices(targetMesh.geometry.clone());
+    const targetGeo = BufferGeometryUtils.mergeVertices(
+      targetMesh.geometry.clone(),
+    );
     targetGeo.applyMatrix4(targetMesh.matrixWorld);
 
-    const cutterGeo = BufferGeometryUtils.mergeVertices(convexMesh.geometry.clone());
+    const cutterGeo = BufferGeometryUtils.mergeVertices(
+      convexMesh.geometry.clone(),
+    );
     cutterGeo.applyMatrix4(convexMesh.matrixWorld);
 
     try {
       const res = await postCsgWorker(targetGeo, cutterGeo, 'sub');
 
       if (res.success && res.result) {
-        const newGeo = new THREE.BufferGeometry();
-        newGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(res.result.position), 3));
-        newGeo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(res.result.normal), 3));
+        const newGeo = new BufferGeometry();
+        newGeo.setAttribute(
+          'position',
+          new BufferAttribute(new Float32Array(res.result.position), 3),
+        );
+        newGeo.setAttribute(
+          'normal',
+          new BufferAttribute(new Float32Array(res.result.normal), 3),
+        );
         if (res.result.index) {
-          newGeo.setIndex(new THREE.BufferAttribute(new Uint32Array(res.result.index), 1));
+          newGeo.setIndex(
+            new BufferAttribute(new Uint32Array(res.result.index), 1),
+          );
         }
 
         if (targetMesh.parent) {
-          const inverseParentMat = targetMesh.parent.matrixWorld.clone().invert();
+          const inverseParentMat = targetMesh.parent.matrixWorld
+            .clone()
+            .invert();
           newGeo.applyMatrix4(inverseParentMat);
         }
 
-        const newMesh = createMesh(newGeo, targetMesh.material, targetMesh.userData.meshType);
+        const newMesh = createMesh(
+          newGeo,
+          targetMesh.material,
+          targetMesh.userData.meshType,
+        );
         newMesh.castShadow = true;
         newMesh.receiveShadow = true;
 
@@ -63,10 +99,14 @@ function useToolOps() {
 
     const meshArr: MeshState[] = [];
     for (const { position, normal } of res.result) {
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.BufferAttribute(position, 3));
-      geo.setAttribute('normal', new THREE.BufferAttribute(normal, 3));
-      const newMesh = createMesh(geo, getMat(mesh).clone(), mesh.userData.meshType);
+      const geo = new BufferGeometry();
+      geo.setAttribute('position', new BufferAttribute(position, 3));
+      geo.setAttribute('normal', new BufferAttribute(normal, 3));
+      const newMesh = createMesh(
+        geo,
+        getMat(mesh).clone(),
+        mesh.userData.meshType,
+      );
       newMesh.castShadow = true;
       newMesh.receiveShadow = true;
       meshArr.push(newMesh);
@@ -97,14 +137,18 @@ interface PenAction extends BaseAction {
 
 type ToolProps = {
   setAction: setAction;
-  baseMat: THREE.MeshStandardMaterial;
-  editMeshRef: RefObject<THREE.Mesh>;
-  editGroupRef: RefObject<THREE.Group>;
+  baseMat: MeshStandardMaterial;
+  editMeshRef: RefObject<Mesh>;
+  editGroupRef: RefObject<Group>;
   baseConcaveRef: RefObject<MeshState>;
-  preMeshRef: RefObject<THREE.Mesh>;
+  preMeshRef: RefObject<Mesh>;
 };
 
-function usePen({ setAction, baseConcaveRef, preMeshRef }: ToolProps): ToolHandlerReturn {
+function usePen({
+  setAction,
+  baseConcaveRef,
+  preMeshRef,
+}: ToolProps): ToolHandlerReturn {
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const pointsRef = useRef<Vec2Arr[]>(null!);
 
@@ -129,9 +173,11 @@ function usePen({ setAction, baseConcaveRef, preMeshRef }: ToolProps): ToolHandl
     const { width, lineChaikin, lineSmooth } = useTools.getState();
 
     setWorking('線の角を丸くする');
-    if (lineChaikin) pointsRef.current = await postChaikinWorker(pointsRef.current);
+    if (lineChaikin)
+      pointsRef.current = await postChaikinWorker(pointsRef.current);
     setWorking('線をなめらかにする');
-    if (lineSmooth) pointsRef.current = await postSmoothWorker(pointsRef.current);
+    if (lineSmooth)
+      pointsRef.current = await postSmoothWorker(pointsRef.current);
 
     setAction({
       id: uuid(),
@@ -145,7 +191,7 @@ function usePen({ setAction, baseConcaveRef, preMeshRef }: ToolProps): ToolHandl
     setWorking(null);
   };
 
-  const pointerEventTmpVec3 = new THREE.Vector3();
+  const pointerEventTmpVec3 = new Vector3();
 
   const editMeshHandlers = {
     onPointerDown: (e: ThreeEvent<PointerEvent>) => {
@@ -167,7 +213,10 @@ function usePen({ setAction, baseConcaveRef, preMeshRef }: ToolProps): ToolHandl
       baseConcaveRef.current.worldToLocal(pointerEventTmpVec3);
       if (pointsRef.current.length) {
         const lastPoint = pointsRef.current[pointsRef.current.length - 1];
-        const dist = Math.sqrt(Math.pow(pointerEventTmpVec3.x - lastPoint[0], 2) + Math.pow(pointerEventTmpVec3.y - lastPoint[1], 2));
+        const dist = Math.sqrt(
+          Math.pow(pointerEventTmpVec3.x - lastPoint[0], 2) +
+            Math.pow(pointerEventTmpVec3.y - lastPoint[1], 2),
+        );
         if (dist < 0.05) return;
       }
       pointsRef.current.push([pointerEventTmpVec3.x, pointerEventTmpVec3.y]);
@@ -182,8 +231,8 @@ function usePen({ setAction, baseConcaveRef, preMeshRef }: ToolProps): ToolHandl
 
 interface BucketAction extends BaseAction {
   type: 'bucket';
-  oldClr: THREE.Color;
-  newClr: THREE.Color;
+  oldClr: Color;
+  newClr: Color;
 }
 
 function useBucket({ setAction }: ToolProps): ToolHandlerReturn {
@@ -222,7 +271,7 @@ function useBucket({ setAction }: ToolProps): ToolHandlerReturn {
       const mat = getMat(mesh);
 
       const oldClr = mesh.userData.originalColor?.clone() || mat.color.clone();
-      const newClr = new THREE.Color(color);
+      const newClr = new Color(color);
 
       if (oldClr.equals(newClr)) return;
 
@@ -246,7 +295,12 @@ interface EraserAction extends BaseAction {
   width: number;
 }
 
-function useEraser({ setAction, baseMat, baseConcaveRef, preMeshRef }: ToolProps): ToolHandlerReturn {
+function useEraser({
+  setAction,
+  baseMat,
+  baseConcaveRef,
+  preMeshRef,
+}: ToolProps): ToolHandlerReturn {
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const pointsRef = useRef<Vec2Arr[]>(null!);
 
@@ -281,7 +335,7 @@ function useEraser({ setAction, baseMat, baseConcaveRef, preMeshRef }: ToolProps
     setWorking(null);
   };
 
-  const pointerEventTmpVec3 = new THREE.Vector3();
+  const pointerEventTmpVec3 = new Vector3();
 
   const editMeshHandlers = {
     onPointerDown: (e: ThreeEvent<PointerEvent>) => {
@@ -302,7 +356,10 @@ function useEraser({ setAction, baseMat, baseConcaveRef, preMeshRef }: ToolProps
       baseConcaveRef.current.worldToLocal(pointerEventTmpVec3);
       if (pointsRef.current.length) {
         const lastPoint = pointsRef.current[pointsRef.current.length - 1];
-        const dist = Math.sqrt(Math.pow(pointerEventTmpVec3.x - lastPoint[0], 2) + Math.pow(pointerEventTmpVec3.y - lastPoint[1], 2));
+        const dist = Math.sqrt(
+          Math.pow(pointerEventTmpVec3.x - lastPoint[0], 2) +
+            Math.pow(pointerEventTmpVec3.y - lastPoint[1], 2),
+        );
         if (dist < 0.05) return;
       }
       pointsRef.current.push([pointerEventTmpVec3.x, pointerEventTmpVec3.y]);
@@ -317,15 +374,22 @@ function useEraser({ setAction, baseMat, baseConcaveRef, preMeshRef }: ToolProps
 
 type ActionState = PenAction | BucketAction | EraserAction;
 
-export function useToolHandlers(baseMat: THREE.MeshStandardMaterial) {
-  const editMeshRef = useRef<THREE.Mesh>(null!);
-  const editGroupRef = useRef<THREE.Group>(null!);
-  const preMeshRef = useRef<THREE.Mesh>(null!);
+export function useToolHandlers(baseMat: MeshStandardMaterial) {
+  const editMeshRef = useRef<Mesh>(null!);
+  const editGroupRef = useRef<Group>(null!);
+  const preMeshRef = useRef<Mesh>(null!);
   const baseConcaveRef = useRef<MeshState>(null!);
 
-  const { working, setWorking } = useTasks(useShallow(s => ({ ...s })));
+  const { working, setWorking } = useTasks(useShallow((s) => ({ ...s })));
   const [action, setAction] = useState<ActionState | null>(null);
-  const toolProps: ToolProps = { setAction, baseMat, editMeshRef, editGroupRef, preMeshRef, baseConcaveRef };
+  const toolProps: ToolProps = {
+    setAction,
+    baseMat,
+    editMeshRef,
+    editGroupRef,
+    preMeshRef,
+    baseConcaveRef,
+  };
   const EMPTY = { editMeshHandlers: {}, editGroupHandlers: {} };
   const handler: Record<Partial<ToolType>, ToolHandlerReturn> = {
     preview: EMPTY,
@@ -335,14 +399,14 @@ export function useToolHandlers(baseMat: THREE.MeshStandardMaterial) {
   };
 
   const { pushHistory } = useHistory.getState();
-  const { tool } = useTools(useShallow(s => ({ ...s })));
+  const { tool } = useTools(useShallow((s) => ({ ...s })));
   const { applySubtraction, getSeparateMeshes } = useToolOps();
 
-  const tmpCenterVec3Ref = useRef<THREE.Vector3>(new THREE.Vector3());
+  const tmpCenterVec3Ref = useRef<Vector3>(new Vector3());
 
-  const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster());
-  const downVecRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, -1));
-  const originRef = useRef<THREE.Vector3>(new THREE.Vector3());
+  const raycasterRef = useRef<Raycaster>(new Raycaster());
+  const downVecRef = useRef<Vector3>(new Vector3(0, 0, -1));
+  const originRef = useRef<Vector3>(new Vector3());
 
   const inheritColors = (newMeshes: MeshState[], oldMeshes: MeshState[]) => {
     if (oldMeshes.length === 0) return;
@@ -380,7 +444,8 @@ export function useToolHandlers(baseMat: THREE.MeshStandardMaterial) {
     return mats;
   };
 
-  const syncRotation = (mesh: THREE.Mesh) => mesh.quaternion.copy(baseConcaveRef.current.quaternion);
+  const syncRotation = (mesh: Mesh) =>
+    mesh.quaternion.copy(baseConcaveRef.current.quaternion);
 
   const buildConcave = async () => {
     const children = editGroupRef.current.children;
@@ -405,7 +470,11 @@ export function useToolHandlers(baseMat: THREE.MeshStandardMaterial) {
 
   useEffect(() => {
     if (!editMeshRef.current || !editGroupRef.current) return;
-    baseConcaveRef.current = createMesh(editMeshRef.current.geometry.clone(), baseMat.clone(), MeshType.Concave);
+    baseConcaveRef.current = createMesh(
+      editMeshRef.current.geometry.clone(),
+      baseMat.clone(),
+      MeshType.Concave,
+    );
     baseConcaveRef.current.position.copy(editMeshRef.current.position);
     baseConcaveRef.current.rotation.copy(editMeshRef.current.rotation);
     baseConcaveRef.current.updateMatrix();
@@ -420,16 +489,24 @@ export function useToolHandlers(baseMat: THREE.MeshStandardMaterial) {
       if (action.type === 'pen') {
         setWorking('ジオメトリを作成中');
         const group = editGroupRef.current;
-        const geo = new THREE.BufferGeometry();
+        const geo = new BufferGeometry();
         updateGeometryFin(geo, action.points, action.width);
-        const mesh = createMesh(geo, getConvexMat(), MeshType.Stroke, action.id);
+        const mesh = createMesh(
+          geo,
+          getConvexMat(),
+          MeshType.Stroke,
+          action.id,
+        );
         syncRotation(mesh);
         group.add(mesh);
 
         setWorking('カラーマッピング中');
         const oldConcaves: MeshState[] = [];
         for (const child of group.children) {
-          if (isMeshState(child) && child.userData.meshType === MeshType.Concave) {
+          if (
+            isMeshState(child) &&
+            child.userData.meshType === MeshType.Concave
+          ) {
             oldConcaves.push(child);
           }
         }
@@ -461,7 +538,9 @@ export function useToolHandlers(baseMat: THREE.MeshStandardMaterial) {
       // Bucket Action
       if (action.type === 'bucket') {
         const { id, newClr, oldClr } = action;
-        const mesh = editGroupRef.current.children.filter(isMeshState).find(m => m.userData.id === id);
+        const mesh = editGroupRef.current.children
+          .filter(isMeshState)
+          .find((m) => m.userData.id === id);
         if (!mesh) return null;
 
         getMat(mesh).color.copy(newClr);
@@ -490,10 +569,16 @@ export function useToolHandlers(baseMat: THREE.MeshStandardMaterial) {
           originRef.current.set(points[i][0], 0, 10);
           raycasterRef.current.set(originRef.current, downVecRef.current);
 
-          const intersects = raycasterRef.current.intersectObjects(group.children, true);
+          const intersects = raycasterRef.current.intersectObjects(
+            group.children,
+            true,
+          );
           for (const hit of intersects) {
             const obj = hit.object;
-            if (isMeshState(obj) && obj.userData.meshType !== MeshType.Concave) {
+            if (
+              isMeshState(obj) &&
+              obj.userData.meshType !== MeshType.Concave
+            ) {
               targets.add(obj);
             }
           }
@@ -501,9 +586,9 @@ export function useToolHandlers(baseMat: THREE.MeshStandardMaterial) {
 
         if (targets.size === 0) return;
 
-        const geo = new THREE.BufferGeometry();
+        const geo = new BufferGeometry();
         updateGeometryFin(geo, points, width);
-        const eraserMesh = new THREE.Mesh(geo);
+        const eraserMesh = new Mesh(geo);
         syncRotation(eraserMesh);
         eraserMesh.updateMatrixWorld(true);
 
@@ -526,7 +611,10 @@ export function useToolHandlers(baseMat: THREE.MeshStandardMaterial) {
         setWorking('カラーマッピング中');
         const oldConcaves: MeshState[] = [];
         for (const child of group.children) {
-          if (isMeshState(child) && child.userData.meshType === MeshType.Concave) {
+          if (
+            isMeshState(child) &&
+            child.userData.meshType === MeshType.Concave
+          ) {
             oldConcaves.push(child);
           }
         }

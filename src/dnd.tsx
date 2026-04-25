@@ -1,4 +1,4 @@
-import { type Dispatch, type SetStateAction, useState } from "react";
+import { type Dispatch, type SetStateAction, useState } from 'react';
 import {
   type DragEndEvent,
   type DraggableAttributes,
@@ -8,7 +8,7 @@ import {
   useSensor,
   PointerSensor,
   KeyboardSensor,
-} from "@dnd-kit/core";
+} from '@dnd-kit/core';
 import {
   arrayMove,
   horizontalListSortingStrategy,
@@ -16,13 +16,13 @@ import {
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+} from '@dnd-kit/sortable';
 import {
   restrictToHorizontalAxis,
   restrictToVerticalAxis,
   restrictToParentElement,
-} from "@dnd-kit/modifiers";
-import { CSS } from "@dnd-kit/utilities";
+} from '@dnd-kit/modifiers';
+import { CSS } from '@dnd-kit/utilities';
 
 type DisabledState = {
   disabled: boolean;
@@ -58,11 +58,11 @@ export function SortableItem({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    zIndex: isDragging ? 100 : "auto",
+    zIndex: isDragging ? 100 : 'auto',
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="pointer-events-auto">
+    <div ref={setNodeRef} style={style} className='pointer-events-auto'>
       {children({ isDragging, attributes, listeners, disabled, setDisabled })}
     </div>
   );

@@ -1,5 +1,11 @@
 import { useRef, useEffect, useMemo } from 'react';
-import * as THREE from 'three';
+import {
+  Vector2,
+  type MeshStandardMaterialParameters,
+  MeshStandardMaterial,
+  Fog,
+  Group,
+} from 'three';
 import { PresentationControls } from '@react-three/drei';
 import { DENT, DIFFERENCE, EXTERNAL_SHAPE, THICKNESS } from './constants';
 import { CamCtrl } from './camCtrl';
@@ -10,22 +16,22 @@ import { useToolHandlers } from './tools';
 
 type Material = 'metal' | 'plastic';
 
-const materialOfColor: Record<Material, THREE.MeshStandardMaterialParameters> = {
+const materialOfColor: Record<Material, MeshStandardMaterialParameters> = {
   metal: { color: '#666666', metalness: 0.6, roughness: 0.4, flatShading: true },
   plastic: { color: '#eeeeee', metalness: 0.1, roughness: 0.8 },
 };
 
 const lathePoints = [
-  new THREE.Vector2(0, 0),
-  new THREE.Vector2(EXTERNAL_SHAPE, 0),
-  new THREE.Vector2(EXTERNAL_SHAPE, THICKNESS),
-  new THREE.Vector2(EXTERNAL_SHAPE - DIFFERENCE, THICKNESS),
-  new THREE.Vector2(EXTERNAL_SHAPE - DIFFERENCE, THICKNESS - DENT - 0.1),
-  new THREE.Vector2(0, THICKNESS - DENT - 0.1),
+  new Vector2(0, 0),
+  new Vector2(EXTERNAL_SHAPE, 0),
+  new Vector2(EXTERNAL_SHAPE, THICKNESS),
+  new Vector2(EXTERNAL_SHAPE - DIFFERENCE, THICKNESS),
+  new Vector2(EXTERNAL_SHAPE - DIFFERENCE, THICKNESS - DENT - 0.1),
+  new Vector2(0, THICKNESS - DENT - 0.1),
 ];
 
-function Manhole({ baseMat }: { baseMat: THREE.MeshStandardMaterial }) {
-  const exportGroupRef = useRef<THREE.Group>(null!);
+function Manhole({ baseMat }: { baseMat: MeshStandardMaterial }) {
+  const exportGroupRef = useRef<Group>(null!);
 
   const { refs, handlers, camControlsEnabled } = useToolHandlers(baseMat);
   const { editMeshRef, editGroupRef, preMeshRef } = refs;
@@ -84,12 +90,12 @@ type SceneProps = {
 };
 
 export default function Scene({ material = 'metal' }: SceneProps) {
-  const baseMat = useMemo<THREE.MeshStandardMaterial>(() => new THREE.MeshStandardMaterial({ ...materialOfColor[material] }), [material]);
+  const baseMat = useMemo<MeshStandardMaterial>(() => new MeshStandardMaterial({ ...materialOfColor[material] }), [material]);
   const { setColor, setBaseColor } = useTools.getState();
   const { defCamPos } = useOther(useShallow(s => ({ ...s })));
   const { setWorking } = useTasks.getState();
 
-  const fogRef = useRef<THREE.Fog>(null!);
+  const fogRef = useRef<Fog>(null!);
 
   useEffect(() => {
     const hex = `#${baseMat.color.getHexString()}`;

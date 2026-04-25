@@ -1,38 +1,44 @@
 /// <reference lib='webworker' />
 
-import * as THREE from 'three';
-import * as CSG from 'three-bvh-csg';
+import { BufferGeometry, type TypedArray, BufferAttribute } from 'three';
+import {
+  Evaluator,
+  Brush,
+  ADDITION,
+  SUBTRACTION,
+  INTERSECTION,
+} from 'three-bvh-csg';
 import type { CSGMsg } from '../constants';
 
-const evaluator = new CSG.Evaluator();
+const evaluator = new Evaluator();
 
 self.onmessage = (e: MessageEvent<CSGMsg>) => {
   try {
     const { type, obj } = e.data;
 
     const createGeo = (
-      pos: THREE.TypedArray,
-      norm: THREE.TypedArray,
-      index?: THREE.TypedArray,
+      pos: TypedArray,
+      norm: TypedArray,
+      index?: TypedArray,
     ) => {
-      const geo = new THREE.BufferGeometry();
+      const geo = new BufferGeometry();
 
       const posAttr = pos instanceof Float32Array ? pos : new Float32Array(pos);
       const normAttr =
         norm instanceof Float32Array ? norm : new Float32Array(norm);
 
-      geo.setAttribute('position', new THREE.BufferAttribute(posAttr, 3));
-      geo.setAttribute('normal', new THREE.BufferAttribute(normAttr, 3));
+      geo.setAttribute('position', new BufferAttribute(posAttr, 3));
+      geo.setAttribute('normal', new BufferAttribute(normAttr, 3));
 
       if (index) {
         const indexAttr =
           index instanceof Uint32Array ? index : new Uint32Array(index);
-        geo.setIndex(new THREE.BufferAttribute(indexAttr, 1));
+        geo.setIndex(new BufferAttribute(indexAttr, 1));
       }
 
       const uvCount = pos.length / 3;
       const uvs = new Float32Array(uvCount * 2);
-      geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+      geo.setAttribute('uv', new BufferAttribute(uvs, 2));
 
       return geo;
     };
@@ -40,19 +46,15 @@ self.onmessage = (e: MessageEvent<CSGMsg>) => {
     const geoA = createGeo(obj.positionA, obj.normalA, obj.indexA);
     const geoB = createGeo(obj.positionB, obj.normalB, obj.indexB);
 
-    const brushA = new CSG.Brush(geoA);
-    const brushB = new CSG.Brush(geoB);
+    const brushA = new Brush(geoA);
+    const brushB = new Brush(geoB);
     brushB.position.set(0.0001, 0.0001, 0.0001);
 
     brushA.updateMatrixWorld();
     brushB.updateMatrixWorld();
 
     const opType =
-      type === 'union'
-        ? CSG.ADDITION
-        : type === 'sub'
-          ? CSG.SUBTRACTION
-          : CSG.INTERSECTION;
+      type === 'union' ? ADDITION : type === 'sub' ? SUBTRACTION : INTERSECTION;
 
     const resultMesh = evaluator.evaluate(brushA, brushB, opType);
     const resultGeo = resultMesh.geometry;
@@ -76,11 +78,12 @@ self.onmessage = (e: MessageEvent<CSGMsg>) => {
     if (normal.buffer) transfer.push(normal.buffer);
     if (index?.buffer) transfer.push(index.buffer);
 
-    self.postMessage({
+    self.postMessage(
+      {
         success: true,
         result: { position, normal, index },
       },
-      transfer
+      transfer,
     );
 
     geoA.dispose();

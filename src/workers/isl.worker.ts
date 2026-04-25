@@ -1,6 +1,6 @@
 /// <reference lib='webworker' />
 
-import type { IslMsg } from "../constants";
+import type { IslMsg } from '../constants';
 
 function separateIslands({ positions, normals }: IslMsg) {
   const numFaces = positions.length / 9;
